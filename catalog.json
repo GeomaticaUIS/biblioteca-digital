@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "title": "Ley 1819 de 2016 - Reforma Tributaria",
+    "description": "Reforma tributaria estructural que modifica el sistema impositivo colombiano, incluyendo cambios en renta, IVA y procedimientos tributarios.",
+    "category": "leyes",
+    "path": "docs/leyes/ley-1819-2016.pdf",
+    "fileType": "pdf",
+    "size": "2.4 MB",
+    "date": "2024-03-15",
+    "tags": ["tributario", "reforma", "impuestos"]
+  },
+  {
+    "id": 2,
+    "title": "NTC-ISO 9001:2015 - Sistemas de Gestión de Calidad",
+    "description": "Norma técnica colombiana sobre requisitos para sistemas de gestión de calidad en organizaciones.",
+    "category": "normas",
+    "path": "docs/normas/ntc-iso-9001-2015.pdf",
+    "fileType": "pdf",
+    "size": "1.8 MB",
+    "date": "2024-02-20",
+    "tags": ["calidad", "ISO", "gestión"]
+  },
+  {
+    "id": 3,
+    "title": "Proyecto de Investigación - IA en Educación",
+    "description": "Análisis del impacto de la inteligencia artificial en metodologías educativas modernas y su aplicación en el aula.",
+    "category": "proyectos",
+    "path": "docs/proyectos/ia-educacion.pdf",
+    "fileType": "pdf",
+    "size": "3.2 MB",
+    "date": "2024-03-10",
+    "tags": ["IA", "educación", "investigación"]
+  },
+  {
+    "id": 4,
+    "title": "Código Civil Colombiano - Actualizado 2024",
+    "description": "Compilación actualizada del código civil con las últimas reformas y jurisprudencia relevante.",
+    "category": "leyes",
+    "path": "docs/leyes/codigo-civil-2024.pdf",
+    "fileType": "pdf",
+    "size": "5.6 MB",
+    "date": "2024-01-15",
+    "tags": ["civil", "código", "derecho"]
+  },
+  {
+    "id": 5,
+    "title": "Tesis Doctoral - Energías Renovables en Colombia",
+    "description": "Análisis técnico-económico del potencial de energías renovables en diferentes regiones del país.",
+    "category": "academicos",
+    "path": "docs/academicos/tesis-energias-renovables.pdf",
+    "fileType": "pdf",
+    "size": "4.1 MB",
+    "date": "2024-02-28",
+    "tags": ["energía", "sostenibilidad", "tesis"]
+  },
+  {
+    "id": 6,
+    "title": "Resolución 0312 de 2019 - MinTrabajo",
+    "description": "Estándares mínimos del Sistema de Gestión de Seguridad y Salud en el Trabajo.",
+    "category": "normas",
+    "path": "docs/normas/resolucion-0312-2019.pdf",
+    "fileType": "pdf",
+    "size": "1.5 MB",
+    "date": "2024-03-05",
+    "tags": ["SST", "trabajo", "seguridad"]
+  }
+]
