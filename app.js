@@ -281,18 +281,100 @@ function openDocument(path, title) {
     const downloadBtn = document.getElementById('downloadBtn');
 
     modalTitle.textContent = title;
+    
+    // Try to load the PDF and handle errors
+    fetch(path, { method: 'HEAD' })
+        .then(response => {
+            if (response.ok) {
+                // File exists, load it
+                pdfViewer.src = path;
+                downloadBtn.href = path;
+                downloadBtn.style.display = 'inline-flex';
+            } else {
+                // File doesn't exist, show custom message
+                showFileNotFound(pdfViewer, title, path);
+                downloadBtn.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            // Network error or file not found
+            showFileNotFound(pdfViewer, title, path);
+            downloadBtn.style.display = 'none';
+        });
 
-    // Construir URL absoluta para GitHub Pages
-    const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-    const fullPath = baseUrl + path;
-
-    pdfViewer.src = fullPath;
-    downloadBtn.href = fullPath;
     downloadBtn.download = title;
-    console.log(path);
-
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+}
+
+// Show custom "file not found" message
+function showFileNotFound(iframe, title, path) {
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    const isDark = theme === 'dark';
+    
+    iframe.srcdoc = `
+        <html>
+            <head>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        margin: 0;
+                        background: ${isDark ? '#1a1816' : '#fdfcf9'};
+                        color: ${isDark ? '#f5f2ed' : '#1a1614'};
+                    }
+                    .message {
+                        text-align: center;
+                        padding: 3rem;
+                        max-width: 500px;
+                    }
+                    .icon {
+                        font-size: 5rem;
+                        margin-bottom: 1.5rem;
+                        opacity: 0.5;
+                    }
+                    h2 {
+                        margin: 0 0 1rem 0;
+                        font-size: 1.75rem;
+                        font-weight: 600;
+                        color: ${isDark ? '#f5f2ed' : '#1a1614'};
+                    }
+                    p {
+                        color: ${isDark ? '#bfb9b3' : '#5c5551'};
+                        margin: 0.5rem 0;
+                        line-height: 1.6;
+                    }
+                    .path {
+                        background: ${isDark ? '#252321' : '#f5f2ed'};
+                        padding: 0.75rem 1rem;
+                        border-radius: 8px;
+                        font-family: monospace;
+                        font-size: 0.875rem;
+                        margin: 1.5rem 0;
+                        color: ${isDark ? '#8b8783' : '#5c5551'};
+                        word-break: break-all;
+                    }
+                    .suggestion {
+                        font-size: 0.875rem;
+                        color: ${isDark ? '#8b8783' : '#8b8783'};
+                        margin-top: 1.5rem;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="message">
+                    <div class="icon">📭</div>
+                    <h2>Documento no encontrado</h2>
+                    <p>El archivo <strong>"${title}"</strong> aún no ha sido subido al repositorio.</p>
+                    <div class="path">${path}</div>
+                    <p class="suggestion">💡 Sube el archivo PDF a esta ruta en GitHub y regenera el catálogo.</p>
+                </div>
+            </body>
+        </html>
+    `;
 }
 
 // Close Modal
