@@ -3,8 +3,8 @@ name: Auto-generar Catálogo
 on:
   push:
     paths:
-      - 'docs/**'  # Se ejecuta cuando cambias algo en la carpeta docs/
-  workflow_dispatch:  # También permite ejecutarlo manualmente
+      - 'docs/**'
+  workflow_dispatch:
 
 jobs:
   update-catalog:
@@ -37,52 +37,3 @@ jobs:
           git add catalog.json
           git commit -m "🤖 Actualizar catálogo automáticamente"
           git push
-```
-
-### Paso 4: Hacer Commit
-
-1. Baja hasta el final de la página
-2. En "Commit message" escribe: `Agregar automatización de catálogo`
-3. Click en **"Commit new file"**
-
-## ✅ Verificar que se creó bien
-
-Después de hacer commit, deberías ver en tu repositorio:
-```
-📁 .github
-  └── 📁 workflows
-       └── 📄 auto-catalog.yml
-```
-
-Puedes verificarlo navegando en tu repo o en:
-`https://github.com/geomaticauis/biblioteca-digital/tree/main/.github/workflows`
-
-## 🔧 Activar permisos (MUY IMPORTANTE)
-
-Después de crear el archivo:
-
-1. Ve a tu repo → **Settings** (pestaña arriba)
-2. En el menú izquierdo → **Actions** → **General**
-3. Baja hasta "Workflow permissions"
-4. Selecciona: ⚪ **"Read and write permissions"**
-5. ✅ Marca: **"Allow GitHub Actions to create and approve pull requests"**
-6. Click **"Save"** abajo
-
-## 🧪 Probar que funciona
-
-1. Ve a tu repo → pestaña **"Actions"** (arriba)
-2. Deberías ver "Auto-generar Catálogo" en la lista
-3. Click en "Auto-generar Catálogo"
-4. Click en **"Run workflow"** → **"Run workflow"**
-5. Espera 1-2 minutos
-6. Debería aparecer ✅ verde si todo salió bien
-
-## 🎯 Resumen visual:
-```
-Tu navegador en GitHub:
-geomaticauis/biblioteca-digital
-├── 👆 Click "Add file" → "Create new file"
-├── 📝 Nombre: .github/workflows/auto-catalog.yml
-├── 📋 Pegar el código YAML
-├── 💾 Commit new file
-└── ⚙️ Settings → Actions → Permisos → Read and write ✅
