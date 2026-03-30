@@ -13,7 +13,13 @@
     --shadow-md: 0 4px 20px rgba(26, 22, 20, 0.08);
     --shadow-lg: 0 8px 40px rgba(26, 22, 20, 0.12);
     
-    /* Category Colors */
+    /* File Type Colors (flexibles) */
+    --cat-pdf: #c7522a;
+    --cat-word: #2563b3;
+    --cat-excel: #059669;
+    --cat-powerpoint: #f59e0b;
+    --cat-texto: #6b7280;
+    --cat-archivo: #8b5cf6;
     --cat-leyes: #c7522a;
     --cat-normas: #2563b3;
     --cat-proyectos: #8b5cf6;
