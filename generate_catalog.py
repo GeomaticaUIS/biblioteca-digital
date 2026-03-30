@@ -63,7 +63,7 @@ def scan_drive_manual():
             break
         
         folder = input("Carpeta/subcarpeta: ").strip()
-        file_id = input("File ID: ").strip()
+        file_id = 1nLxpKoFpUmccmbNJ-gvuseXlk2HwdPfO ##input("File ID: ").strip()
         description = input("Descripción (opcional): ").strip()
         
         # Detectar tipo de archivo por extensión
