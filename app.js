@@ -3,8 +3,16 @@ let allDocuments = [];
 let filteredDocuments = [];
 let currentCategory = 'all';
 
-// Category color mapping
+// Category color mapping (soporta tipos de archivo y categorías personalizadas)
 const categoryColors = {
+    // Tipos de archivo
+    'pdf': { main: '#c7522a', light: '#e67e4e' },
+    'word': { main: '#2563b3', light: '#3b82f6' },
+    'excel': { main: '#059669', light: '#10b981' },
+    'powerpoint': { main: '#f59e0b', light: '#fbbf24' },
+    'texto': { main: '#6b7280', light: '#9ca3af' },
+    'archivo': { main: '#8b5cf6', light: '#a78bfa' },
+    // Categorías tradicionales (mantener compatibilidad)
     'leyes': { main: '#c7522a', light: '#e67e4e' },
     'normas': { main: '#2563b3', light: '#3b82f6' },
     'proyectos': { main: '#8b5cf6', light: '#a78bfa' },
@@ -218,20 +226,24 @@ function renderDocuments() {
 // Create Document Card
 function createDocumentCard(doc) {
     const colors = categoryColors[doc.category] || categoryColors.default;
-    const fileExtension = doc.fileType.toUpperCase();
+    const fileExtension = doc.icon || doc.fileType.toUpperCase();
     const formattedDate = new Date(doc.date).toLocaleDateString('es-CO', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
     });
+    
+    const downloadUrl = doc.downloadUrl || doc.path;
+    const source = doc.source === 'google-drive' ? '☁️ Drive' : '📁 GitHub';
+    const categoryName = doc.categoryDisplay || doc.category;
 
     return `
         <div class="doc-card" 
-             onclick="openDocument('${doc.path}', '${doc.title}')"
+             onclick="openDocument('${doc.path}', '${doc.title}', '${downloadUrl}')"
              style="--doc-color: ${colors.main}; --doc-color-light: ${colors.light}">
             <div class="doc-header">
                 <div class="doc-icon">${fileExtension}</div>
-                <span class="doc-category">${doc.category}</span>
+                <span class="doc-category">${categoryName}</span>
             </div>
             <h3 class="doc-title">${doc.title}</h3>
             <p class="doc-description">${doc.description}</p>
@@ -255,6 +267,11 @@ function createDocumentCard(doc) {
                     </svg>
                     ${formattedDate}
                 </span>
+                ${doc.source ? `
+                <span class="doc-meta-item">
+                    ${source}
+                </span>
+                ` : ''}
             </div>
         </div>
     `;
@@ -274,7 +291,7 @@ function updateResultCount() {
 }
 
 // Open Document
-function openDocument(path, title) {
+function openDocument(path, title, downloadUrl = null) {
     const modal = document.getElementById('pdfModal');
     const modalTitle = document.getElementById('modalTitle');
     const pdfViewer = document.getElementById('pdfViewer');
@@ -282,25 +299,35 @@ function openDocument(path, title) {
 
     modalTitle.textContent = title;
     
-    // Try to load the PDF and handle errors
-    fetch(path, { method: 'HEAD' })
-        .then(response => {
-            if (response.ok) {
-                // File exists, load it
-                pdfViewer.src = path;
-                downloadBtn.href = path;
-                downloadBtn.style.display = 'inline-flex';
-            } else {
-                // File doesn't exist, show custom message
+    // Check if it's a Google Drive link
+    const isDriveLink = path.includes('drive.google.com');
+    
+    if (isDriveLink) {
+        // Google Drive: load directly
+        pdfViewer.src = path;
+        downloadBtn.href = downloadUrl || path;
+        downloadBtn.style.display = 'inline-flex';
+    } else {
+        // GitHub: check if file exists first
+        fetch(path, { method: 'HEAD' })
+            .then(response => {
+                if (response.ok) {
+                    // File exists, load it
+                    pdfViewer.src = path;
+                    downloadBtn.href = downloadUrl || path;
+                    downloadBtn.style.display = 'inline-flex';
+                } else {
+                    // File doesn't exist, show custom message
+                    showFileNotFound(pdfViewer, title, path);
+                    downloadBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                // Network error or file not found
                 showFileNotFound(pdfViewer, title, path);
                 downloadBtn.style.display = 'none';
-            }
-        })
-        .catch(error => {
-            // Network error or file not found
-            showFileNotFound(pdfViewer, title, path);
-            downloadBtn.style.display = 'none';
-        });
+            });
+    }
 
     downloadBtn.download = title;
     modal.classList.add('active');
