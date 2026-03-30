@@ -5,13 +5,21 @@ let currentCategory = 'all';
 
 // Category color mapping (soporta tipos de archivo y categorías personalizadas)
 const categoryColors = {
-    // Tipos de archivo
+    // Tipos de archivo comunes
     'pdf': { main: '#c7522a', light: '#e67e4e' },
     'word': { main: '#2563b3', light: '#3b82f6' },
     'excel': { main: '#059669', light: '#10b981' },
     'powerpoint': { main: '#f59e0b', light: '#fbbf24' },
     'texto': { main: '#6b7280', light: '#9ca3af' },
     'archivo': { main: '#8b5cf6', light: '#a78bfa' },
+    // Tipos GIS/ArcGIS
+    'gis': { main: '#16a34a', light: '#22c55e' },
+    'arcgis': { main: '#0ea5e9', light: '#38bdf8' },
+    'geodatabase': { main: '#0891b2', light: '#06b6d4' },
+    'raster': { main: '#84cc16', light: '#a3e635' },
+    'kml': { main: '#ea580c', light: '#fb923c' },
+    'geojson': { main: '#7c3aed', light: '#a78bfa' },
+    'gpx': { main: '#dc2626', light: '#ef4444' },
     // Categorías tradicionales (mantener compatibilidad)
     'leyes': { main: '#c7522a', light: '#e67e4e' },
     'normas': { main: '#2563b3', light: '#3b82f6' },
