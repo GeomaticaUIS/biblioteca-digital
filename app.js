@@ -309,8 +309,7 @@ function createDocumentCard(doc) {
     // Mostrar la carpeta en el badge, pero usar tipo de archivo para colores
     const categoryName = doc.categoryDisplay || doc.category;
     const size = formatFileSize(Number(doc.size || 0));
-    console.log(size);
-
+    //console.log(size);
     return `
         <div class="doc-card" 
              onclick="openDocument('${doc.path}', '${doc.title}', '${downloadUrl}')"
