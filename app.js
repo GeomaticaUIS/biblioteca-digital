@@ -3,6 +3,9 @@ let allDocuments = [];
 let filteredDocuments = [];
 let currentCategory = 'all';
 
+let parts = [];
+let currentPart = 0;
+
 // Category color mapping (soporta tipos de archivo y categorías personalizadas)
 const categoryColors = {
     // Tipos de archivo comunes
@@ -85,6 +88,8 @@ async function loadDocuments() {
         allDocuments = results.flat();
         filteredDocuments = allDocuments;
         console.log(`✅ Total documentos: ${allDocuments.length}`);
+        // 🔥 cargar solo la primera
+        await loadNextPart();
         renderCategories();
         renderDocuments();
         updateResultCount();
@@ -100,6 +105,19 @@ async function loadDocuments() {
         hideLoading();
     }
 }
+
+async function loadNextPart() {
+    if (currentPart >= parts.length) return;
+    console.log("📥 Cargando:", parts[currentPart]);
+    const res = await fetch(parts[currentPart]);
+    const data = await res.json();
+    allDocuments = allDocuments.concat(data);
+    filteredDocuments = allDocuments;
+    currentPart++;
+    renderDocuments();
+    updateResultCount();
+}
+
 // Sample Documents (for demonstration)
 function getSampleDocuments() {
     return [
@@ -468,5 +486,12 @@ document.addEventListener('keydown', (e) => {
     if (e.key === '/' && e.target.tagName !== 'INPUT') {
         e.preventDefault();
         document.getElementById('searchInput').focus();
+    }
+});
+
+// 🔥 🔥 AQUÍ VA (al final del archivo)
+window.addEventListener('scroll', () => {
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+        loadNextPart();
     }
 });
