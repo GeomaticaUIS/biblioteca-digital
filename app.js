@@ -254,16 +254,7 @@ function renderDocuments() {
     grid.style.display = 'grid';
     noResults.style.display = 'none';
 
-    grid.innerHTML = filteredDocuments.map(doc => {
-        const size = formatFileSize(Number(doc.size || 0));
-        console.log(size);
-        return `
-            <div class="doc">
-                <h3>${doc.title}</h3>
-                <p>📦 Tamaño: ${size}</p>
-            </div>
-        `;
-    }).join("");
+    grid.innerHTML = filteredDocuments.map(doc => createDocumentCard(doc)).join('');
 }
 
 // Create Document Card
@@ -284,6 +275,8 @@ function createDocumentCard(doc) {
     
     // Mostrar la carpeta en el badge, pero usar tipo de archivo para colores
     const categoryName = doc.categoryDisplay || doc.category;
+    const size = formatFileSize(Number(doc.size || 0));
+    console.log(size);
 
     return `
         <div class="doc-card" 
@@ -306,7 +299,7 @@ function createDocumentCard(doc) {
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <line x1="9" y1="3" x2="9" y2="21"/>
                     </svg>
-                    ${doc.size}
+                    📦 Tamaño: ${size}
                 </span>
                 <span class="doc-meta-item">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
