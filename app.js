@@ -227,6 +227,18 @@ function updateActiveChip() {
         chip.classList.toggle('active', chip.dataset.category === currentCategory);
     });
 }
+//convertir valor tamaño a MB o mas
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return "0 B";
+
+    const unidades = ["B", "KB", "MB", "GB", "TB"];
+    const k = 1024;
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const size = bytes / Math.pow(k, i);
+
+    return parseFloat(size.toFixed(2)) + " " + unidades[i];
+}
 
 // Render Documents
 function renderDocuments() {
@@ -242,7 +254,16 @@ function renderDocuments() {
     grid.style.display = 'grid';
     noResults.style.display = 'none';
 
-    grid.innerHTML = filteredDocuments.map(doc => createDocumentCard(doc)).join('');
+    grid.innerHTML = filteredDocuments.map(doc => {
+        const size = formatFileSize(Number(doc.size || 0));
+        console.log(size);
+        return `
+            <div class="doc">
+                <h3>${doc.title}</h3>
+                <p>📦 Tamaño: ${size}</p>
+            </div>
+        `;
+    }).join("");
 }
 
 // Create Document Card
