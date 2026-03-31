@@ -72,7 +72,7 @@ async function loadDocuments() {
         if (!indexResponse.ok) {
             throw new Error("No existe index.json");
         }
-        const parts = await indexResponse.json();
+        parts = await indexResponse.json();
         console.log(`📂 Partes encontradas: ${parts.length}`);
         // 🚀 carga paralela
         /*const requests = parts.map(url =>
