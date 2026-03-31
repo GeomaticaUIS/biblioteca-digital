@@ -107,16 +107,21 @@ async function loadDocuments() {
     }
 }
 
+let isLoading = false;
+
 async function loadNextPart() {
-    if (currentPart >= parts.length) return;
+    if (isLoading || currentPart >= parts.length) return;
+    isLoading = true;
     console.log("📥 Cargando:", parts[currentPart]);
     const res = await fetch(parts[currentPart]);
     const data = await res.json();
+    console.log("📄 Docs cargados:", data.length);
     allDocuments = allDocuments.concat(data);
     filteredDocuments = allDocuments;
     currentPart++;
     renderDocuments();
     updateResultCount();
+    isLoading = false;
 }
 
 // Sample Documents (for demonstration)
