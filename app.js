@@ -75,7 +75,7 @@ async function loadDocuments() {
         const parts = await indexResponse.json();
         console.log(`📂 Partes encontradas: ${parts.length}`);
         // 🚀 carga paralela
-        const requests = parts.map(url =>
+        /*const requests = parts.map(url =>
             fetch(url).then(res => {
                 if (!res.ok) {
                     throw new Error(`Error cargando ${url}`);
@@ -87,6 +87,7 @@ async function loadDocuments() {
         // 🔥 unir todo
         allDocuments = results.flat();
         filteredDocuments = allDocuments;
+        */
         console.log(`✅ Total documentos: ${allDocuments.length}`);
         // 🔥 cargar solo la primera
         await loadNextPart();
