@@ -64,24 +64,46 @@ function setupEventListeners() {
 // Load Documents
 async function loadDocuments() {
     try {
-        // Try to fetch catalog.json
-        const response = await fetch('catalog.json');
-        
-        if (!response.ok) {
-            // If catalog doesn't exist, load sample data
-            allDocuments = getSampleDocuments();
+        console.log("📡 Intentando cargar catálogo principal...");
+        let allData = [];
+        // 🔹 Intento 1: catálogo único (por compatibilidad)
+        const mainResponse = await fetch('catalog.json');
+        if (mainResponse.ok) {
+            console.log("✅ Usando catalog.json");
+            allData = await mainResponse.json();
         } else {
-            allDocuments = await response.json();
+            console.warn("⚠️ catalog.json no disponible, usando catálogo dividido...");
+            // 🔹 Intento 2: índice de partes
+            const indexResponse = await fetch('catalog/index.json');
+            if (!indexResponse.ok) {
+                throw new Error("No existe index.json");
+            }
+            const parts = await indexResponse.json();
+            console.log(`📂 Partes encontradas: ${parts.length}`);
+            // 🚀 Carga en paralelo (MUCHO más rápido)
+            const requests = parts.map(url =>
+                fetch(url).then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Error cargando ${url}`);
+                    }
+                    return res.json();
+                })
+            );
+            const results = await Promise.all(requests);
+            // 🔥 unir todos los arrays
+            allData = results.flat();
         }
-
+        // ✅ Asignación final
+        allDocuments = allData;
         filteredDocuments = allDocuments;
+        console.log(`✅ Total documentos: ${allDocuments.length}`);
         renderCategories();
         renderDocuments();
         updateResultCount();
         hideLoading();
     } catch (error) {
-        console.error('Error loading documents:', error);
-        // Load sample data as fallback
+        console.error("❌ Error loading documents:", error);
+        // 🔄 fallback seguro
         allDocuments = getSampleDocuments();
         filteredDocuments = allDocuments;
         renderCategories();
