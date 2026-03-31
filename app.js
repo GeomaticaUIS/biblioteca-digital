@@ -165,14 +165,15 @@ function getSampleDocuments() {
 
 // Render Categories
 function renderCategories() {
-    const categories = ['all', ...new Set(allDocuments.map(doc => doc.category))];
+    // Extraer tipos de archivo únicos en vez de categorías de carpetas
+    const fileTypes = ['all', ...new Set(allDocuments.map(doc => doc.fileTypeDisplay || doc.fileType.toUpperCase()))];
     const filterChips = document.getElementById('filterChips');
     
-    filterChips.innerHTML = categories.map(cat => {
-        const displayName = cat === 'all' ? 'Todos' : cat.charAt(0).toUpperCase() + cat.slice(1);
-        return `<button class="chip ${cat === currentCategory ? 'active' : ''}" 
-                        data-category="${cat}"
-                        onclick="filterByCategory('${cat}')">
+    filterChips.innerHTML = fileTypes.map(type => {
+        const displayName = type === 'all' ? 'Todos' : type;
+        return `<button class="chip ${type === currentCategory ? 'active' : ''}" 
+                        data-category="${type}"
+                        onclick="filterByCategory('${type}')">
                     ${displayName}
                 </button>`;
     }).join('');
@@ -193,11 +194,15 @@ function handleSearch(e) {
 // Apply Filters
 function applyFilters(searchTerm = '') {
     filteredDocuments = allDocuments.filter(doc => {
-        const matchesCategory = currentCategory === 'all' || doc.category === currentCategory;
+        // Filtrar por tipo de archivo en vez de por categoría de carpeta
+        const fileType = doc.fileTypeDisplay || doc.fileType.toUpperCase();
+        const matchesCategory = currentCategory === 'all' || fileType === currentCategory;
+        
         const matchesSearch = searchTerm === '' || 
             doc.title.toLowerCase().includes(searchTerm) ||
             doc.description.toLowerCase().includes(searchTerm) ||
-            doc.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+            (doc.categoryDisplay && doc.categoryDisplay.toLowerCase().includes(searchTerm)) ||
+            (doc.tags && doc.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
         
         return matchesCategory && matchesSearch;
     });
@@ -233,7 +238,10 @@ function renderDocuments() {
 
 // Create Document Card
 function createDocumentCard(doc) {
-    const colors = categoryColors[doc.category] || categoryColors.default;
+    // Usar fileTypeDisplay para los colores en vez de category
+    const fileType = (doc.fileTypeDisplay || doc.fileType).toLowerCase();
+    const colors = categoryColors[fileType] || categoryColors.default;
+    
     const fileExtension = doc.icon || doc.fileType.toUpperCase();
     const formattedDate = new Date(doc.date).toLocaleDateString('es-CO', {
         year: 'numeric',
@@ -243,6 +251,8 @@ function createDocumentCard(doc) {
     
     const downloadUrl = doc.downloadUrl || doc.path;
     const source = doc.source === 'google-drive' ? '☁️ Drive' : '📁 GitHub';
+    
+    // Mostrar la carpeta en el badge, pero usar tipo de archivo para colores
     const categoryName = doc.categoryDisplay || doc.category;
 
     return `
