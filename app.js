@@ -110,12 +110,21 @@ async function loadDocuments() {
 let isLoading = false;
 
 async function loadNextPart() {
-    if (isLoading || currentPart >= parts.length) return;
+    console.log("🚨 intentando cargar parte");
+    console.log({
+        isLoading,
+        currentPart,
+        totalParts: parts.length
+    });
+    if (isLoading || currentPart >= parts.length) {
+        console.log("⛔ BLOQUEADO");
+        return;
+    }
     isLoading = true;
     console.log("📥 Cargando:", parts[currentPart]);
     const res = await fetch(parts[currentPart]);
     const data = await res.json();
-    console.log("📄 Docs cargados:", data.length);
+    console.log("✅ Datos:", data);
     allDocuments = allDocuments.concat(data);
     filteredDocuments = allDocuments;
     currentPart++;
