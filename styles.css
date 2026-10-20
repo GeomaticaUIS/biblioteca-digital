@@ -1,4 +1,6 @@
 :root {
+    --header-height: 9.75rem;
+
     /* Light Theme */
     --bg-primary: #fdfcf9;
     --bg-secondary: #f5f2ed;
@@ -178,6 +180,11 @@ body {
     max-width: 1400px;
     margin: 3rem auto;
     padding: 0 2rem;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 99;
+    background: var(--bg-primary);
+    box-shadow: var(--shadow-sm);
     animation: fadeInUp 0.6s ease 0.2s both;
 }
 
@@ -601,6 +608,10 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    :root {
+        --header-height: 8.75rem;
+    }
+
     .header-content {
         padding: 0 1rem;
     }
