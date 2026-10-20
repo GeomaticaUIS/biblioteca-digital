@@ -13,6 +13,27 @@ Un elegante micrositio para organizar y consultar documentos en GitHub Pages.
 - ⚡ **Generación automática** - Script Python para crear el catálogo
 - 🎨 **Categorías con colores** - Identificación visual por tipo de documento
 
+### Búsqueda para catálogos grandes
+
+El sitio genera un índice comprimido en `catalog/search/` a partir de
+`catalog/index.json` y sus partes. Para generarlo localmente:
+
+```bash
+python3 generate_search_index.py
+```
+
+El índice se divide en fragmentos de hasta 10.000 documentos. La página carga
+un fragmento al abrirse, muestra resultados en lotes de 50 y descarga el resto
+del índice al buscar o filtrar en todo el catálogo. En el catálogo actual, la
+descarga comprimida completa es de aproximadamente 32 MB. GitHub Pages sirve
+los archivos estáticos; la búsqueda se ejecuta en el navegador y los enlaces a
+los documentos siguen apuntando a Google Drive.
+
+El workflow `Generar índice de búsqueda` vuelve a generar el índice cuando
+cambian las partes del catálogo. Si los datos se actualizan fuera de GitHub,
+ejecuta el script y publica tanto los cambios del catálogo como los archivos
+actualizados de `catalog/search/`.
+
 ## 📁 Estructura del Proyecto
 
 ```

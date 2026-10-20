@@ -2,9 +2,20 @@
 let allDocuments = [];
 let filteredDocuments = [];
 let currentCategory = 'all';
+let currentSearchTerm = '';
+let catalogManifest = null;
+let catalogManifestUrl = null;
+let nextShardIndex = 0;
+let visibleDocumentCount = 0;
+let currentShardLoadPromise = null;
+let loadAllPromise = null;
+let searchDebounceTimer = null;
+let searchRequestId = 0;
 
-let parts = [];
-let currentPart = 0;
+const DOCUMENTS_PER_PAGE = 50;
+const SHARD_LOAD_CONCURRENCY = 4;
+const shardPromises = new Map();
+const pendingShards = new Map();
 
 // Category color mapping (soporta tipos de archivo y categorías personalizadas)
 const categoryColors = {
@@ -55,11 +66,13 @@ function toggleTheme() {
 function setupEventListeners() {
     const themeToggle = document.getElementById('themeToggle');
     const searchInput = document.getElementById('searchInput');
+    const loadMoreButton = document.getElementById('loadMoreButton');
     const modalClose = document.getElementById('modalClose');
     const modalOverlay = document.getElementById('modalOverlay');
 
     themeToggle.addEventListener('click', toggleTheme);
     searchInput.addEventListener('input', handleSearch);
+    loadMoreButton.addEventListener('click', loadMoreDocuments);
     modalClose.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', closeModal);
 }
@@ -67,149 +80,141 @@ function setupEventListeners() {
 // Load Documents
 async function loadDocuments() {
     try {
-        console.log("📡 Cargando catálogo dividido...");
-        const indexResponse = await fetch('catalog/index.json');
-        if (!indexResponse.ok) {
-            throw new Error("No existe index.json");
+        catalogManifestUrl = new URL('catalog/search/manifest.json', document.baseURI);
+        const manifestResponse = await fetch(catalogManifestUrl);
+        if (!manifestResponse.ok) {
+            throw new Error(`No se pudo cargar el índice (${manifestResponse.status})`);
         }
-        parts = await indexResponse.json();
-        console.log(`📂 Partes encontradas: ${parts.length}`);
-        // 🚀 carga paralela
-        /*const requests = parts.map(url =>
-            fetch(url).then(res => {
-                if (!res.ok) {
-                    throw new Error(`Error cargando ${url}`);
-                }
-                return res.json();
-            })
-        );
-        const results = await Promise.all(requests);
-        // 🔥 unir todo
-        allDocuments = results.flat();
-        filteredDocuments = allDocuments;
-        */
-        console.log(`✅ Total documentos: ${allDocuments.length}`);
-        // 🔥 cargar solo la primera
-        await loadNextPart();
+        catalogManifest = await manifestResponse.json();
+        if (!Array.isArray(catalogManifest.shards) || catalogManifest.shards.length === 0) {
+            throw new Error('El índice no contiene fragmentos de catálogo');
+        }
+
         renderCategories();
-        renderDocuments();
-        updateResultCount();
+        await loadNextShard();
+        if (currentSearchTerm || currentCategory !== 'all') {
+            await loadAllShards();
+        }
+        applyFilters(currentSearchTerm);
         hideLoading();
     } catch (error) {
-        console.error("❌ Error loading documents:", error);
-        // fallback
-        allDocuments = getSampleDocuments();
-        filteredDocuments = allDocuments;
-        renderCategories();
-        renderDocuments();
-        updateResultCount();
+        console.error('Error loading catalog:', error);
+        document.getElementById('resultCount').textContent =
+            'No se pudo cargar el catálogo. Recarga la página para intentarlo de nuevo.';
         hideLoading();
     }
 }
 
-let isLoading = false;
+async function fetchCatalogShard(index) {
+    if (!shardPromises.has(index)) {
+        const shardUrl = new URL(catalogManifest.shards[index], catalogManifestUrl);
+        const request = fetch(shardUrl).then(async response => {
+            if (!response.ok) {
+                throw new Error(`No se pudo cargar ${shardUrl} (${response.status})`);
+            }
+            if (typeof DecompressionStream !== 'function') {
+                throw new Error('Este navegador no admite la descompresión del índice');
+            }
 
-async function loadNextPart() {
-    console.log("🚨 intentando cargar parte");
-    console.log({
-        isLoading,
-        currentPart,
-        totalParts: parts.length
-    });
-    if (isLoading || currentPart >= parts.length) {
-        console.log("⛔ BLOQUEADO");
-        return;
+            const compressedData = await response.arrayBuffer();
+            const decompressedStream = new Blob([compressedData])
+                .stream()
+                .pipeThrough(new DecompressionStream('gzip'));
+            const documents = await new Response(decompressedStream).json();
+            if (!Array.isArray(documents)) {
+                throw new Error(`El fragmento ${shardUrl} no contiene una lista`);
+            }
+            return documents;
+        });
+        shardPromises.set(index, request);
     }
-    isLoading = true;
-    console.log("📥 Cargando:", parts[currentPart]);
-    const res = await fetch(parts[currentPart]);
-    const data = await res.json();
-    console.log("✅ Datos:", data);
-    allDocuments = allDocuments.concat(data);
-    filteredDocuments = allDocuments;
-    currentPart++;
-    renderDocuments();
-    updateResultCount();
-    isLoading = false;
+
+    try {
+        return await shardPromises.get(index);
+    } catch (error) {
+        shardPromises.delete(index);
+        throw error;
+    }
 }
 
-// Sample Documents (for demonstration)
-function getSampleDocuments() {
-    return [
-        {
-            id: 1,
-            title: "Ley 1819 de 2016 - Reforma Tributaria",
-            description: "Reforma tributaria estructural que modifica el sistema impositivo colombiano, incluyendo cambios en renta, IVA y procedimientos tributarios.",
-            category: "leyes",
-            path: "docs/leyes/ley-1819-2016.pdf",
-            fileType: "pdf",
-            size: "2.4 MB",
-            date: "2024-03-15",
-            tags: ["tributario", "reforma", "impuestos"]
-        },
-        {
-            id: 2,
-            title: "NTC-ISO 9001:2015 - Sistemas de Gestión de Calidad",
-            description: "Norma técnica colombiana sobre requisitos para sistemas de gestión de calidad en organizaciones.",
-            category: "normas",
-            path: "docs/normas/ntc-iso-9001-2015.pdf",
-            fileType: "pdf",
-            size: "1.8 MB",
-            date: "2024-02-20",
-            tags: ["calidad", "ISO", "gestión"]
-        },
-        {
-            id: 3,
-            title: "Proyecto de Investigación - IA en Educación",
-            description: "Análisis del impacto de la inteligencia artificial en metodologías educativas modernas y su aplicación en el aula.",
-            category: "proyectos",
-            path: "docs/proyectos/ia-educacion.pdf",
-            fileType: "pdf",
-            size: "3.2 MB",
-            date: "2024-03-10",
-            tags: ["IA", "educación", "investigación"]
-        },
-        {
-            id: 4,
-            title: "Código Civil Colombiano - Actualizado 2024",
-            description: "Compilación actualizada del código civil con las últimas reformas y jurisprudencia relevante.",
-            category: "leyes",
-            path: "docs/leyes/codigo-civil-2024.pdf",
-            fileType: "pdf",
-            size: "5.6 MB",
-            date: "2024-01-15",
-            tags: ["civil", "código", "derecho"]
-        },
-        {
-            id: 5,
-            title: "Tesis Doctoral - Energías Renovables en Colombia",
-            description: "Análisis técnico-económico del potencial de energías renovables en diferentes regiones del país.",
-            category: "academicos",
-            path: "docs/academicos/tesis-energias-renovables.pdf",
-            fileType: "pdf",
-            size: "4.1 MB",
-            date: "2024-02-28",
-            tags: ["energía", "sostenibilidad", "tesis"]
-        },
-        {
-            id: 6,
-            title: "Resolución 0312 de 2019 - MinTrabajo",
-            description: "Estándares mínimos del Sistema de Gestión de Seguridad y Salud en el Trabajo.",
-            category: "normas",
-            path: "docs/normas/resolucion-0312-2019.pdf",
-            fileType: "pdf",
-            size: "1.5 MB",
-            date: "2024-03-05",
-            tags: ["SST", "trabajo", "seguridad"]
+function integrateShard(index, documents) {
+    pendingShards.set(index, documents);
+    while (pendingShards.has(nextShardIndex)) {
+        allDocuments.push(...pendingShards.get(nextShardIndex));
+        pendingShards.delete(nextShardIndex);
+        nextShardIndex++;
+    }
+}
+
+async function loadNextShard() {
+    if (loadAllPromise) {
+        await loadAllPromise;
+        return;
+    }
+    if (currentShardLoadPromise) {
+        await currentShardLoadPromise;
+        return;
+    }
+    if (nextShardIndex >= catalogManifest.shards.length) {
+        return;
+    }
+
+    const loadPromise = (async () => {
+        const index = nextShardIndex;
+        const documents = await fetchCatalogShard(index);
+        integrateShard(index, documents);
+    })();
+    currentShardLoadPromise = loadPromise;
+    try {
+        await loadPromise;
+    } finally {
+        if (currentShardLoadPromise === loadPromise) {
+            currentShardLoadPromise = null;
         }
-    ];
+    }
+}
+
+async function loadAllShards() {
+    if (loadAllPromise) {
+        return loadAllPromise;
+    }
+
+    loadAllPromise = (async () => {
+        if (currentShardLoadPromise) {
+            await currentShardLoadPromise;
+        }
+        while (nextShardIndex < catalogManifest.shards.length) {
+            const firstIndex = nextShardIndex;
+            const endIndex = Math.min(
+                firstIndex + SHARD_LOAD_CONCURRENCY,
+                catalogManifest.shards.length
+            );
+            const shardDocuments = await Promise.all(
+                Array.from({ length: endIndex - firstIndex }, (_, offset) =>
+                    fetchCatalogShard(firstIndex + offset)
+                )
+            );
+            shardDocuments.forEach((documents, offset) => {
+                integrateShard(firstIndex + offset, documents);
+            });
+            document.getElementById('resultCount').textContent =
+                `Preparando búsqueda: ${allDocuments.length.toLocaleString('es-CO')} de ` +
+                `${catalogManifest.totalDocuments.toLocaleString('es-CO')} documentos`;
+        }
+        applyFilters(currentSearchTerm);
+    })();
+
+    try {
+        await loadAllPromise;
+    } finally {
+        loadAllPromise = null;
+    }
 }
 
 // Render Categories
 function renderCategories() {
-    // Extraer tipos de archivo únicos en vez de categorías de carpetas
-    const fileTypes = ['all', ...new Set(allDocuments.map(doc => doc.fileTypeDisplay || doc.fileType.toUpperCase()))];
     const filterChips = document.getElementById('filterChips');
+    const fileTypes = ['all', ...catalogManifest.fileTypes];
     
     filterChips.innerHTML = fileTypes.map(type => {
         const displayName = type === 'all' ? 'Todos' : type;
@@ -222,36 +227,100 @@ function renderCategories() {
 }
 
 // Filter by Category
-function filterByCategory(category) {
+async function filterByCategory(category) {
     currentCategory = category;
-    applyFilters();
+    const requestId = ++searchRequestId;
+    if (category !== 'all' && nextShardIndex < catalogManifest.shards.length) {
+        document.getElementById('resultCount').textContent = 'Filtrando todo el catálogo...';
+        try {
+            await loadAllShards();
+        } catch (error) {
+            console.error('Error loading catalog for category filter:', error);
+            document.getElementById('resultCount').textContent =
+                'No se pudo completar el filtro. Intenta de nuevo.';
+            return;
+        }
+    }
+    if (requestId === searchRequestId) {
+        applyFilters(currentSearchTerm);
+    }
 }
 
 // Handle Search
 function handleSearch(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    applyFilters(searchTerm);
+    currentSearchTerm = e.target.value.trim().toLowerCase();
+    const requestId = ++searchRequestId;
+    clearTimeout(searchDebounceTimer);
+
+    searchDebounceTimer = setTimeout(async () => {
+        if (!catalogManifest) {
+            return;
+        }
+        if (currentSearchTerm && nextShardIndex < catalogManifest.shards.length) {
+            document.getElementById('resultCount').textContent = 'Buscando en todo el catálogo...';
+            try {
+                await loadAllShards();
+            } catch (error) {
+                console.error('Error loading catalog for search:', error);
+                document.getElementById('resultCount').textContent =
+                    'No se pudo completar la búsqueda. Intenta de nuevo.';
+                return;
+            }
+        }
+        if (requestId === searchRequestId) {
+            applyFilters(currentSearchTerm);
+        }
+    }, 300);
 }
 
 // Apply Filters
-function applyFilters(searchTerm = '') {
+function applyFilters(searchTerm = currentSearchTerm, resetResults = true) {
     filteredDocuments = allDocuments.filter(doc => {
         // Filtrar por tipo de archivo en vez de por categoría de carpeta
-        const fileType = doc.fileTypeDisplay || doc.fileType.toUpperCase();
+        const fileType = doc.fileTypeDisplay || (doc.fileType || '').toUpperCase();
         const matchesCategory = currentCategory === 'all' || fileType === currentCategory;
-        
-        const matchesSearch = searchTerm === '' || 
-            doc.title.toLowerCase().includes(searchTerm) ||
-            doc.description.toLowerCase().includes(searchTerm) ||
-            (doc.categoryDisplay && doc.categoryDisplay.toLowerCase().includes(searchTerm)) ||
-            (doc.tags && doc.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+        const searchText = [
+            doc.title,
+            doc.category,
+            doc.categoryDisplay,
+            doc.fileTypeDisplay,
+            doc.fileType,
+            ...(doc.tags || [])
+        ].filter(Boolean).join(' ').toLowerCase();
+        const matchesSearch = searchTerm === '' || searchText.includes(searchTerm);
         
         return matchesCategory && matchesSearch;
     });
 
-    renderDocuments();
+    renderDocuments(resetResults);
     updateResultCount();
     updateActiveChip();
+}
+
+async function loadMoreDocuments() {
+    const button = document.getElementById('loadMoreButton');
+    if (visibleDocumentCount < filteredDocuments.length) {
+        renderDocuments(false);
+        return;
+    }
+    if (nextShardIndex >= catalogManifest.shards.length) {
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Cargando...';
+    try {
+        await loadNextShard();
+        applyFilters(currentSearchTerm, false);
+    } catch (error) {
+        console.error('Error loading next catalog shard:', error);
+        document.getElementById('resultCount').textContent =
+            'No se pudo cargar más documentos. Intenta de nuevo.';
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Mostrar más documentos';
+        updateLoadMoreButton();
+    }
 }
 
 // Update Active Chip
@@ -274,20 +343,41 @@ function formatFileSize(bytes) {
 }
 
 // Render Documents
-function renderDocuments() {
+function renderDocuments(reset = true) {
     const grid = document.getElementById('documentsGrid');
     const noResults = document.getElementById('noResults');
+
+    if (reset) {
+        grid.innerHTML = '';
+        visibleDocumentCount = 0;
+    }
 
     if (filteredDocuments.length === 0) {
         grid.style.display = 'none';
         noResults.style.display = 'block';
+        updateLoadMoreButton();
         return;
     }
 
     grid.style.display = 'grid';
     noResults.style.display = 'none';
+    const nextDocuments = filteredDocuments.slice(
+        visibleDocumentCount,
+        visibleDocumentCount + DOCUMENTS_PER_PAGE
+    );
+    grid.insertAdjacentHTML(
+        'beforeend',
+        nextDocuments.map(doc => createDocumentCard(doc)).join('')
+    );
+    visibleDocumentCount += nextDocuments.length;
+    updateLoadMoreButton();
+}
 
-    grid.innerHTML = filteredDocuments.map(doc => createDocumentCard(doc)).join('');
+function updateLoadMoreButton() {
+    const button = document.getElementById('loadMoreButton');
+    const hasMoreResults = visibleDocumentCount < filteredDocuments.length;
+    const hasMoreShards = catalogManifest && nextShardIndex < catalogManifest.shards.length;
+    button.hidden = !hasMoreResults && !hasMoreShards;
 }
 
 // Create Document Card
@@ -353,13 +443,17 @@ function createDocumentCard(doc) {
 // Update Result Count
 function updateResultCount() {
     const resultCount = document.getElementById('resultCount');
-    const count = filteredDocuments.length;
-    const total = allDocuments.length;
-    
-    if (currentCategory === 'all' && count === total) {
-        resultCount.textContent = `${total} documento${total !== 1 ? 's' : ''} en total`;
+    const total = catalogManifest.totalDocuments;
+    const isFiltered = currentCategory !== 'all' || currentSearchTerm !== '';
+
+    if (isFiltered) {
+        resultCount.textContent = `${filteredDocuments.length.toLocaleString('es-CO')} resultado` +
+            `${filteredDocuments.length !== 1 ? 's' : ''} de ${total.toLocaleString('es-CO')} documentos`;
+    } else if (nextShardIndex < catalogManifest.shards.length) {
+        resultCount.textContent = `Mostrando ${visibleDocumentCount.toLocaleString('es-CO')} de ` +
+            `${total.toLocaleString('es-CO')} documentos`;
     } else {
-        resultCount.textContent = `${count} de ${total} documento${count !== 1 ? 's' : ''}`;
+        resultCount.textContent = `${total.toLocaleString('es-CO')} documentos en total`;
     }
 }
 
@@ -500,12 +594,5 @@ document.addEventListener('keydown', (e) => {
     if (e.key === '/' && e.target.tagName !== 'INPUT') {
         e.preventDefault();
         document.getElementById('searchInput').focus();
-    }
-});
-
-// 🔥 🔥 AQUÍ VA (al final del archivo)
-window.addEventListener('scroll', () => {
-    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
-        loadNextPart();
     }
 });
